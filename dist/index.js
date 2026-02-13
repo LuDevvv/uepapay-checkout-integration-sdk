@@ -61,7 +61,7 @@ var TransitionValidator = class {
   constructor(definition) {
     this.definition = definition;
   }
-  validateTransition(from, to, context) {
+  async validateTransition(from, to, context) {
     if (!this.definition.states[from]) {
       return {
         allowed: false,
@@ -100,9 +100,10 @@ var TransitionValidator = class {
         hasPassingRule = true;
         break;
       }
-      const guardResults = transition.guards.map(
+      const guardPromises = transition.guards.map(
         (guard) => guard(transitionContext)
       );
+      const guardResults = await Promise.all(guardPromises);
       const failedGuards = guardResults.filter((res) => {
         if (typeof res === "boolean") return !res;
         return !res.allowed;
@@ -131,7 +132,7 @@ var TransitionValidator = class {
       errors: errors.length > 0 ? errors : ["Transition guards failed"]
     };
   }
-  getAllowedTransitions(from, context) {
+  async getAllowedTransitions(from, context) {
     if (!this.definition.states[from]) {
       throw new StateNotFoundError(from);
     }
@@ -140,7 +141,7 @@ var TransitionValidator = class {
     });
     const allowed = [];
     for (const t of potentialTransitions) {
-      const result = this.validateTransition(from, t.to, context);
+      const result = await this.validateTransition(from, t.to, context);
       if (result.allowed) {
         if (!allowed.includes(t.to)) {
           allowed.push(t.to);
@@ -160,16 +161,35 @@ var WorkflowEngine = class {
   getInitialState() {
     return this.definition.initialState;
   }
-  validate(from, to, context) {
+  async validate(from, to, context) {
     return this.validator.validateTransition(from, to, context);
   }
-  assertTransition(from, to, context) {
-    const result = this.validate(from, to, context);
+  async assertTransition(from, to, context) {
+    const result = await this.validate(from, to, context);
     if (!result.allowed) {
       throw new InvalidTransitionError(from, to, result.reason || result.errors?.join(", "));
     }
   }
-  getAllowedTransitions(from, context) {
+  async transition(from, to, context) {
+    await this.assertTransition(from, to, context);
+    const transitionContext = { from, to, context };
+    const fromState = this.definition.states[from];
+    if (fromState && fromState.onLeave) {
+      await fromState.onLeave(transitionContext);
+    }
+    const transitions = this.definition.transitions.filter(
+      (t) => (Array.isArray(t.from) ? t.from.includes(from) : t.from === from) && t.to === to
+    );
+    const activeTransition = transitions[0];
+    if (activeTransition && activeTransition.onTransition) {
+      await activeTransition.onTransition(transitionContext);
+    }
+    const toState = this.definition.states[to];
+    if (toState && toState.onEnter) {
+      await toState.onEnter(transitionContext);
+    }
+  }
+  async getAllowedTransitions(from, context) {
     return this.validator.getAllowedTransitions(from, context);
   }
   getDefinition() {

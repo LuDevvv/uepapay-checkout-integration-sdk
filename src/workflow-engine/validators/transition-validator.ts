@@ -9,11 +9,11 @@ import { StateNotFoundError } from "../errors";
 export class TransitionValidator<TContext = any> {
     constructor(private definition: WorkflowDefinition<TContext>) { }
 
-    public validateTransition(
+    public async validateTransition(
         from: StateIdentifier,
         to: StateIdentifier,
         context: TContext
-    ): ValidationResult {
+    ): Promise<ValidationResult> {
         // 1. Validate State Existence
         if (!this.definition.states[from]) {
             return {
@@ -56,17 +56,17 @@ export class TransitionValidator<TContext = any> {
 
         const errors: string[] = [];
 
-        let hasPassingRule = false;
-
         for (const transition of validTransitions) {
             if (!transition.guards || transition.guards.length === 0) {
-                hasPassingRule = true;
-                break;
+                return { allowed: true, matchedTransition: transition };
             }
 
-            const guardResults = transition.guards.map((guard) =>
+            // Execute guards in parallel
+            const guardPromises = transition.guards.map((guard) =>
                 guard(transitionContext)
             );
+
+            const guardResults = await Promise.all(guardPromises);
 
             const failedGuards = guardResults.filter((res) => {
                 if (typeof res === "boolean") return !res;
@@ -74,8 +74,7 @@ export class TransitionValidator<TContext = any> {
             });
 
             if (failedGuards.length === 0) {
-                hasPassingRule = true;
-                break;
+                return { allowed: true, matchedTransition: transition };
             } else {
                 // Collect errors from this specific rule attempt
                 failedGuards.forEach((res) => {
@@ -90,10 +89,6 @@ export class TransitionValidator<TContext = any> {
             }
         }
 
-        if (hasPassingRule) {
-            return { allowed: true };
-        }
-
         return {
             allowed: false,
             reason: "Guards failed",
@@ -101,7 +96,7 @@ export class TransitionValidator<TContext = any> {
         };
     }
 
-    public getAllowedTransitions(from: StateIdentifier, context: TContext): StateIdentifier[] {
+    public async getAllowedTransitions(from: StateIdentifier, context: TContext): Promise<StateIdentifier[]> {
         if (!this.definition.states[from]) {
             throw new StateNotFoundError(from);
         }
@@ -113,7 +108,7 @@ export class TransitionValidator<TContext = any> {
         const allowed: StateIdentifier[] = [];
 
         for (const t of potentialTransitions) {
-            const result = this.validateTransition(from, t.to, context);
+            const result = await this.validateTransition(from, t.to, context);
             if (result.allowed) {
                 if (!allowed.includes(t.to)) {
                     allowed.push(t.to);

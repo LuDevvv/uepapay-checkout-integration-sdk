@@ -16,6 +16,8 @@ A lightweight, deterministic, and framework-agnostic state machine engine design
 - [Testing](#testing)
 
 ## Features
+- **Async Support**: Native support for asynchronous guards (e.g., database checks) and actions.
+- **Hooks & Side Effects**: Integrated `onEnter`, `onLeave`, and `onTransition` lifecycle hooks.
 - **Deterministic Validation**: Pure business logic engine that validates transitions before any side effects occur.
 - **Stateless Design**: No internal state persistence; fully compatible with serverless environments (e.g., Cloudflare Workers).
 - **Type Safety**: Built with strict TypeScript, supporting generic contexts for domain-specific validation.
@@ -58,7 +60,13 @@ const orderWorkflow: WorkflowDefinition<OrderContext> = {
   initialState: 'PENDING',
   states: {
     PENDING: { name: 'PENDING' },
-    PAID: { name: 'PAID' },
+    PAID: { 
+        name: 'PAID',
+        onEnter: async ({ context }) => {
+            console.log(`Order ${context.orderId} is now PAID.`);
+            // e.g. await sendEmail(context.orderId);
+        }
+    },
     CANCELLED: { name: 'CANCELLED', isTerminal: true }
   },
   transitions: [
@@ -71,22 +79,23 @@ const engine = createWorkflow(orderWorkflow);
 ```
 
 ### Validating Transitions
-Check if a transition is allowed before executing business logic.
+Check if a transition is allowed before executing business logic. Note that validation is now **async**.
 
 ```typescript
 const context = { orderId: '123', amount: 100 };
-const result = engine.validate('PENDING', 'PAID', context);
+const result = await engine.validate('PENDING', 'PAID', context);
 
 if (result.allowed) {
   console.log('Transition allowed');
-  // Proceed with database updates, etc.
+  // Proceed with execution
+  await engine.transition('PENDING', 'PAID', context);
 } else {
   console.error('Transition blocked:', result.reason);
 }
 ```
 
-### Using Guards
-Guards are functions that return `true` (allowed) or a `ValidationResult` (denied).
+### Using Async Guards
+Guards can now return a `Promise` for async validation (e.g., database checks).
 
 ```typescript
 transitions: [
@@ -94,9 +103,10 @@ transitions: [
     from: 'PENDING',
     to: 'PAID',
     guards: [
-      ({ context }) => {
-        if (context.amount <= 0) {
-          return { allowed: false, reason: 'Amount must be positive' };
+      async ({ context }) => {
+        const isFraud = await checkFraudDB(context.orderId);
+        if (isFraud) {
+          return { allowed: false, reason: 'Fraud suspected' };
         }
         return true;
       }
@@ -105,13 +115,22 @@ transitions: [
 ]
 ```
 
+### Hooks (Side Effects)
+You can define `onEnter`, `onLeave` (on States), and `onTransition` (on Transitions) to execute side effects.
+
+```typescript
+// These are executed when calling engine.transition(from, to, context)
+await engine.transition('PENDING', 'PAID', context);
+// Order: onLeave(PENDING) -> onTransition(PENDING->PAID) -> onEnter(PAID)
+```
+
 ## API Reference
 
 ### `createWorkflow<TContext>(definition)`
 Factory function to create a new `WorkflowEngine` instance.
 
-### `engine.validate(from, to, context)`
-Returns a `ValidationResult`:
+### `async engine.validate(from, to, context)`
+Returns a `Promise<ValidationResult>`:
 ```typescript
 {
   allowed: boolean;
@@ -120,11 +139,14 @@ Returns a `ValidationResult`:
 }
 ```
 
-### `engine.assertTransition(from, to, context)`
-Throws an `InvalidTransitionError` if the transition is not allowed. Useful for fail-fast scenarios.
+### `async engine.transition(from, to, context)`
+Validates the transition and, if allowed, executes all configured hooks (`onLeave`, `onTransition`, `onEnter`). Throws `InvalidTransitionError` if validation fails.
 
-### `engine.getAllowedTransitions(from, context)`
-Returns a list of valid next states based on the current state and context.
+### `async engine.assertTransition(from, to, context)`
+Throws an `InvalidTransitionError` if the transition is not allowed.
+
+### `async engine.getAllowedTransitions(from, context)`
+Returns a promise resolving to a list of valid next states based on the current state and context.
 
 ## Testing
 Run the included unit tests using Vitest:

@@ -1,18 +1,35 @@
 {
   "name": "uepapy-checkout-integration",
   "version": "1.0.0",
-  "description": "",
+  "description": "A lightweight, async workflow engine for TypeScript applications.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup src/workflow-engine/index.ts --format cjs,esm --dts",
+    "build": "tsup src/workflow-engine/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx examples/order-workflow.ts"
+    "example": "tsx examples/order-workflow.ts",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "workflow",
+    "state-machine",
+    "async",
+    "typescript",
+    "process-engine"
+  ],
+  "author": "LuDevvv",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.15.24",
