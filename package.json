@@ -1,7 +1,7 @@
 {
   "name": "uepapy-checkout-integration",
-  "version": "1.0.0",
-  "description": "A lightweight, async workflow engine for TypeScript applications.",
+  "version": "1.0.1",
+  "description": "The official unofficial UepaPay SDK for TypeScript applications.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -16,23 +16,28 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/workflow-engine/index.ts --format cjs,esm --dts --clean",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx examples/order-workflow.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "workflow",
-    "state-machine",
-    "async",
+    "uepapay",
+    "payment",
+    "sdk",
+    "dominican-republic",
     "typescript",
-    "process-engine"
+    "workflow"
   ],
   "author": "LuDevvv",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuDevvv/uepapy-checkout-integration.git"
+  },
   "devDependencies": {
     "@types/node": "^22.15.24",
+    "dotenv": "^17.3.1",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",

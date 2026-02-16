@@ -1,159 +1,92 @@
-![UepaPay Lite SDK](./assets/uepapy-lite-sdk.png)
 
-# Workflow/State Engine Library
+# UepaPay Checkout Integration SDK
 
-A lightweight, deterministic, and framework-agnostic state machine engine designed for validating workflow transitions in TypeScript applications.
+[![npm version](https://img.shields.io/npm/v/uepapy-checkout-integration.svg)](https://www.npmjs.com/package/uepapy-checkout-integration)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Architecture](#architecture)
-- [Usage](#usage)
-  - [Defining a Workflow](#defining-a-workflow)
-  - [Validating Transitions](#validating-transitions)
-  - [Using Guards](#using-guards)
-- [API Reference](#api-reference)
-- [Testing](#testing)
+A lightweight, type-safe SDK for integrating UepaPay (Dominican Republic Payment Gateway) into TypeScript applications. 
+Designed for **Node.js**, **Cloudflare Workers**, and modern web frameworks.
 
 ## Features
-- **Async Support**: Native support for asynchronous guards (e.g., database checks) and actions.
-- **Hooks & Side Effects**: Integrated `onEnter`, `onLeave`, and `onTransition` lifecycle hooks.
-- **Deterministic Validation**: Pure business logic engine that validates transitions before any side effects occur.
-- **Stateless Design**: No internal state persistence; fully compatible with serverless environments (e.g., Cloudflare Workers).
-- **Type Safety**: Built with strict TypeScript, supporting generic contexts for domain-specific validation.
-- **Guard System**: Flexible guard functions to enforce complex transition rules.
-- **Zero Dependencies**: Core logic depends only on standard TypeScript/JavaScript.
+
+- 🔒 **Secure Encryption**: Handles the `EncryptRequest` handshake transparently.
+- ✅ **Order Validation**: Built-in support for `CheckOrder` to verify payment status.
+- ⚙️ **Workflow Engine**: extensive state machine for managing payment styling (optional).
+- 🦕 **Type-Safe**: Complete TypeScript definitions for all payloads.
+- 🚀 **Zero Runtime Dependencies**: Uses native `fetch` and `crypto` APIs.
 
 ## Installation
 
-This project is currently structured as an internal library standard. To use it within this repository:
-
-1. Import directly from `src/workflow-engine`.
-2. Ensure you have the necessary dev dependencies installed:
-   ```bash
-   npm install
-   ```
-
-## Architecture
-The library is modular and composed of the following parts:
-
-- **Core (`src/workflow-engine/core`)**: Contains the `WorkflowEngine` class, the main entry point.
-- **Validators (`src/workflow-engine/validators`)**: Logic for validating states and transitions.
-- **Types (`src/workflow-engine/types`)**: strictly typed interfaces.
-- **Errors (`src/workflow-engine/errors`)**: Domain-specific error classes.
-
-## Usage
-
-### Defining a Workflow
-Define your states, transitions, and rules using the `WorkflowDefinition` interface.
-
-```typescript
-import { createWorkflow, WorkflowDefinition } from './src/workflow-engine';
-
-interface OrderContext {
-  orderId: string;
-  amount: number;
-}
-
-const orderWorkflow: WorkflowDefinition<OrderContext> = {
-  name: 'OrderProcessing',
-  initialState: 'PENDING',
-  states: {
-    PENDING: { name: 'PENDING' },
-    PAID: { 
-        name: 'PAID',
-        onEnter: async ({ context }) => {
-            console.log(`Order ${context.orderId} is now PAID.`);
-            // e.g. await sendEmail(context.orderId);
-        }
-    },
-    CANCELLED: { name: 'CANCELLED', isTerminal: true }
-  },
-  transitions: [
-    { from: 'PENDING', to: 'PAID', label: 'Process Payment' },
-    { from: 'PENDING', to: 'CANCELLED', label: 'Cancel Order' }
-  ]
-};
-
-const engine = createWorkflow(orderWorkflow);
-```
-
-### Validating Transitions
-Check if a transition is allowed before executing business logic. Note that validation is now **async**.
-
-```typescript
-const context = { orderId: '123', amount: 100 };
-const result = await engine.validate('PENDING', 'PAID', context);
-
-if (result.allowed) {
-  console.log('Transition allowed');
-  // Proceed with execution
-  await engine.transition('PENDING', 'PAID', context);
-} else {
-  console.error('Transition blocked:', result.reason);
-}
-```
-
-### Using Async Guards
-Guards can now return a `Promise` for async validation (e.g., database checks).
-
-```typescript
-transitions: [
-  {
-    from: 'PENDING',
-    to: 'PAID',
-    guards: [
-      async ({ context }) => {
-        const isFraud = await checkFraudDB(context.orderId);
-        if (isFraud) {
-          return { allowed: false, reason: 'Fraud suspected' };
-        }
-        return true;
-      }
-    ]
-  }
-]
-```
-
-### Hooks (Side Effects)
-You can define `onEnter`, `onLeave` (on States), and `onTransition` (on Transitions) to execute side effects.
-
-```typescript
-// These are executed when calling engine.transition(from, to, context)
-await engine.transition('PENDING', 'PAID', context);
-// Order: onLeave(PENDING) -> onTransition(PENDING->PAID) -> onEnter(PAID)
-```
-
-## API Reference
-
-### `createWorkflow<TContext>(definition)`
-Factory function to create a new `WorkflowEngine` instance.
-
-### `async engine.validate(from, to, context)`
-Returns a `Promise<ValidationResult>`:
-```typescript
-{
-  allowed: boolean;
-  reason?: string;
-  errors?: string[];
-}
-```
-
-### `async engine.transition(from, to, context)`
-Validates the transition and, if allowed, executes all configured hooks (`onLeave`, `onTransition`, `onEnter`). Throws `InvalidTransitionError` if validation fails.
-
-### `async engine.assertTransition(from, to, context)`
-Throws an `InvalidTransitionError` if the transition is not allowed.
-
-### `async engine.getAllowedTransitions(from, context)`
-Returns a promise resolving to a list of valid next states based on the current state and context.
-
-## Testing
-Run the included unit tests using Vitest:
-
 ```bash
-npm test
+npm install uepapy-checkout-integration
+```
+
+## Quick Start
+
+### 1. Initialize Client
+
+```typescript
+import { UepaPayClient } from 'uepapy-checkout-integration';
+
+const client = new UepaPayClient({
+  merchantId: process.env.UEPA_MERCHANT_ID,
+  merchantName: 'My Store',
+  merchantIp: '127.0.0.1', // Your Server IP
+  authKey: process.env.UEPA_AUTH_KEY,
+  primaryKey: process.env.UEPA_PRIMARY_KEY,
+  environment: 'staging' // or 'production'
+});
+```
+
+### 2. Generate Payment Link
+
+redirect the user to this URL to complete payment.
+
+```typescript
+const paymentUrl = await client.generatePaymentUrl({
+  id: 'ORD-12345',
+  amount: 1500.00,
+  currency: 'DOP',
+  description: 'Monthly Subscription',
+  tax: 0 // Optional
+});
+
+// redirect(paymentUrl);
+```
+
+### 3. Handle Webhook / Validation
+
+When the user returns or a webhook is triggered:
+
+```typescript
+const { status, details } = await client.validateOrder('ORD-12345');
+
+if (status === 'PAID') {
+  console.log('Payment successful!');
+  // fulfillOrder('ORD-12345');
+} else {
+  console.warn('Payment failed or pending:', status);
+}
+```
+
+## Advanced Usage
+
+### Custom Workflow State Machine
+
+The SDK includes a powerful state machine engine if you need to manage complex payment flows manually:
+
+```typescript
+import { createWorkflow } from 'uepapy-checkout-integration';
+
+const engine = createWorkflow({
+  name: 'PaymentProcess',
+  initialState: 'CREATED',
+  transitions: [
+    { from: 'CREATED', to: 'PAID' }
+  ]
+});
 ```
 
 ## License
-[ISC](LICENSE)
+
+MIT © [LuDevvv](https://github.com/LuDevvv)
