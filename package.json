@@ -1,5 +1,5 @@
 {
-  "name": "uepapy-checkout-integration",
+  "name": "uepapay-checkout-integration-sdk",
   "version": "1.0.1",
   "description": "The official unofficial UepaPay SDK for TypeScript applications.",
   "main": "./dist/index.js",
@@ -33,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LuDevvv/uepapy-checkout-integration.git"
+    "url": "git+https://github.com/LuDevvv/uepapay-checkout-integration-sdk.git"
   },
   "devDependencies": {
     "@types/node": "^22.15.24",

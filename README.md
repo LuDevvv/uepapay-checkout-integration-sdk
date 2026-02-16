@@ -1,7 +1,7 @@
 
 # UepaPay Checkout Integration SDK
 
-[![npm version](https://img.shields.io/npm/v/uepapy-checkout-integration.svg)](https://www.npmjs.com/package/uepapy-checkout-integration)
+[![npm version](https://img.shields.io/npm/v/uepapay-checkout-integration-sdk.svg)](https://www.npmjs.com/package/uepapay-checkout-integration-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, type-safe SDK for integrating UepaPay (Dominican Republic Payment Gateway) into TypeScript applications. 
@@ -18,7 +18,7 @@ Designed for **Node.js**, **Cloudflare Workers**, and modern web frameworks.
 ## Installation
 
 ```bash
-npm install uepapy-checkout-integration
+npm install uepapay-checkout-integration-sdk
 ```
 
 ## Quick Start
@@ -26,7 +26,7 @@ npm install uepapy-checkout-integration
 ### 1. Initialize Client
 
 ```typescript
-import { UepaPayClient } from 'uepapy-checkout-integration';
+import { UepaPayClient } from 'uepapay-checkout-integration-sdk';
 
 const client = new UepaPayClient({
   merchantId: process.env.UEPA_MERCHANT_ID,
@@ -76,7 +76,7 @@ if (status === 'PAID') {
 The SDK includes a powerful state machine engine if you need to manage complex payment flows manually:
 
 ```typescript
-import { createWorkflow } from 'uepapy-checkout-integration';
+import { createWorkflow } from 'uepapay-checkout-integration-sdk';
 
 const engine = createWorkflow({
   name: 'PaymentProcess',

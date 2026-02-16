@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { createWorkflow, WorkflowDefinition } from '../src/workflow-engine';
+import { createWorkflow, WorkflowDefinition } from '../src/core';
 
 // Define States
 const PaymentState = {
